@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hobbyist Supplier and Co.</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+  </head>
+
+  <body>
+    <div id="app">
+      <header>
+        <h1 v-text="sitename"></h1>
+
+        <button
+          type="button"
+          v-on:click="showCheckout"
+          v-bind:disabled="cartItemCount === 0"
+        >
+          {{ cartItemCount }}
+          <span class="fas fa-cart-plus" aria-hidden="true"></span>
+          Checkout
+        </button>
+      </header>
+
+      <main v-if="showProduct">
+        <figure>
+          <i
+            :class="product.iconClass"
+            :aria-label="product.title"
+            role="img"
+          ></i>
+        </figure>
+
+        <h2 v-text="product.title"></h2>
+
+        <p v-html="product.description"></p>
+
+        <p>
+          <strong>Price:</strong>
+          ${{ (product.price).toFixed(2) }}
+        </p>
+
+        <p>
+          <strong>Available Stock:</strong>
+          {{ product.availableInventory - cartItemCount }}
+        </p>
+
+        <button v-if="canAddToCart" type="button" v-on:click="addItem">
+          Add to cart
+        </button>
+
+        <button v-else type="button" disabled>Out of stock</button>
+
+        <span v-if="product.availableInventory === cartItemCount">
+          All out!
+        </span>
+
+        <span v-else-if="product.availableInventory - cartItemCount < 5">
+          Only {{ product.availableInventory - cartItemCount }} left!
+        </span>
+
+        <span v-else> Buy now! </span>
+      </main>
+
+      <main v-else>
+        <h2>Checkout</h2>
+
+        <p>You have {{ cartItemCount }} item(s) in your cart.</p>
+
+        <button type="button" v-on:click="showCheckout">
+          Back to products
+        </button>
+      </main>
+    </div>
+
+    <script>
+      new Vue({
+        el: "#app",
+
+        data: {
+          sitename: "Hobbyist Supplier & Co.",
+
+          product: {
+            id: 1001,
+            category: "Hiking",
+            title: "Trail Daypack",
+            description:
+              "A lightweight <em>hiking daypack</em> with enough room for your trail essentials.",
+            location: "Manchester, England",
+            price: 89,
+            iconClass: "fa-solid fa-person-hiking",
+            availableInventory: 5,
+          },
+
+          cart: [],
+
+          showProduct: true,
+        },
+
+        computed: {
+          cartItemCount() {
+            return this.cart.length;
+          },
+
+          canAddToCart() {
+            return this.product.availableInventory > this.cartItemCount;
+          },
+        },
+
+        methods: {
+          addItem() {
+            this.cart.push(this.product.id);
+          },
+
+          showCheckout() {
+            this.showProduct = !this.showProduct;
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
