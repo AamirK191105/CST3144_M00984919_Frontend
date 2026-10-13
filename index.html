@@ -1,127 +1,371 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hobbyist Supplier and Co.</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    />
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>After School Hobbies Store</title>
 
-  <body>
-    <div id="app">
-      <header>
-        <h1 v-text="sitename"></h1>
+  <!-- Vue.js -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
 
-        <button
-          type="button"
-          v-on:click="showCheckout"
-          v-bind:disabled="cartItemCount === 0"
-        >
-          {{ cartItemCount }}
-          <span class="fas fa-cart-plus" aria-hidden="true"></span>
-          Checkout
-        </button>
-      </header>
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+  />
 
-      <main v-if="showProduct">
+  <!-- Load product data BEFORE initializing Vue -->
+  <script src="./products.js"></script>
+</head>
+
+<body>
+  <div id="app">
+    <header>
+      <h1 v-text="sitename"></h1>
+
+      <button type="button" @click="showCheckout">
+        {{ cartItemCount }}
+        <i class="fas fa-cart-plus"></i>
+        Checkout
+      </button>
+    </header>
+
+    <!-- Products Display View -->
+    <main v-if="showProduct">
+      <div
+        v-for="product in sortedProducts"
+        :key="product.id"
+        style="margin-bottom: 2.5rem;"
+      >
+        <!-- Product Icon -->
         <figure>
           <i
-            :class="product.iconClass"
-            :aria-label="product.title"
-            role="img"
+            class="fa-solid"
+            :class="{
+              'fa-palette': product.id === 1001,
+              'fa-scissors': product.id === 1002,
+              'fa-seedling': product.id === 1003,
+              'fa-hammer': product.id === 1004,
+              'fa-camera': product.id === 1005,
+              'fa-cake-candles': product.id === 1006,
+              'fa-train': product.id === 1007,
+              'fa-shapes': product.id === 1008,
+              'fa-music': product.id === 1009,
+              'fa-binoculars': product.id === 1010
+            }"
+            style="font-size: 3.5rem;"
+            aria-hidden="true"
           ></i>
         </figure>
 
-        <h2 v-text="product.title"></h2>
+        <!-- Product Information -->
+        <h2>{{ product.title }}</h2>
 
-        <p v-html="product.description"></p>
+        <p>{{ product.description }}</p>
+
+        <p>
+          <strong>Location:</strong>
+          {{ product.location }}
+        </p>
 
         <p>
           <strong>Price:</strong>
-          ${{ (product.price).toFixed(2) }}
+          £{{ (product.price / 100).toFixed(2) }}
         </p>
 
         <p>
           <strong>Available Stock:</strong>
-          {{ product.availableInventory - cartItemCount }}
+          {{ remainingInventory(product) }}
         </p>
 
-        <button v-if="canAddToCart" type="button" v-on:click="addItem">
+        <!-- Star Ratings -->
+        <div aria-label="Product rating">
+          <span
+            v-for="n in 5"
+            :key="product.id + '-star-' + n"
+          >
+            <i
+              :class="n <= product.rating
+                ? 'fa-solid fa-star'
+                : 'fa-regular fa-star'"
+              aria-hidden="true"
+            ></i>
+          </span>
+          <span>({{ product.rating }}/5)</span>
+        </div>
+
+        <!-- Add to Cart -->
+        <button
+          v-if="canAddToCart(product)"
+          type="button"
+          @click="addItem(product)"
+        >
           Add to cart
         </button>
 
-        <button v-else type="button" disabled>Out of stock</button>
+        <button v-else type="button" disabled>
+          Out of stock
+        </button>
 
-        <span v-if="product.availableInventory === cartItemCount">
+        <!-- Stock Status -->
+        <span v-if="remainingInventory(product) === 0">
           All out!
         </span>
 
-        <span v-else-if="product.availableInventory - cartItemCount < 5">
-          Only {{ product.availableInventory - cartItemCount }} left!
+        <span
+          v-else-if="remainingInventory(product) < 5"
+        >
+          Only {{ remainingInventory(product) }} remaining!
         </span>
 
-        <span v-else> Buy now! </span>
-      </main>
+        <span v-else>
+          Items in Stock!
+        </span>
+      </div>
+    </main>
 
-      <main v-else>
-        <h2>Checkout</h2>
+    <!-- Checkout View -->
+    <main v-else>
+      <h2>Checkout</h2>
 
-        <p>You have {{ cartItemCount }} item(s) in your cart.</p>
+      <button type="button" @click="showCheckout">
+        Back to products
+      </button>
 
-        <button type="button" v-on:click="showCheckout">
-          Back to products
-        </button>
-      </main>
-    </div>
+      <!-- Shopping Cart -->
+      <section aria-labelledby="cart-heading" style="margin-top: 1.5rem;">
+        <h3 id="cart-heading">Your Cart</h3>
 
-    <script>
-      new Vue({
-        el: "#app",
+        <p v-if="cartItemCount === 0">
+          Your cart is empty.
+        </p>
 
-        data: {
-          sitename: "Hobbyist Supplier & Co.",
+        <template v-else>
+          <ul>
+            <li
+              v-for="(id, index) in cart"
+              :key="index"
+            >
+              {{ getProduct(id).title }}
+              - £{{ (getProduct(id).price / 100).toFixed(2) }}
+              ({{ getProduct(id).location }})
 
-          product: {
-            id: 1001,
-            category: "Hiking",
-            title: "Trail Daypack",
-            description:
-              "A lightweight <em>hiking daypack</em> with enough room for your trail essentials.",
-            location: "Manchester, England",
-            price: 89,
-            iconClass: "fa-solid fa-person-hiking",
-            availableInventory: 5,
-          },
+              <button
+                type="button"
+                @click="removeItem(index)"
+                aria-label="Remove item from cart"
+              >
+                Remove
+              </button>
+            </li>
+          </ul>
 
-          cart: [],
+          <p>
+            <strong>Total:</strong>
+            £{{ (cartTotal / 100).toFixed(2) }}
+          </p>
+        </template>
+      </section>
 
-          showProduct: true,
+      <!-- Customer Details -->
+      <form @submit.prevent="submitForm">
+        <p>
+          <label for="firstName"><strong>First Name:</strong></label>
+          <input id="firstName" v-model.trim="order.firstName" required />
+        </p>
+
+        <p>
+          <label for="lastName"><strong>Last Name:</strong></label>
+          <input id="lastName" v-model.trim="order.lastName" required />
+        </p>
+
+        <p>
+          <label for="address"><strong>Address:</strong></label>
+          <input id="address" v-model.trim="order.address" required />
+        </p>
+
+        <p>
+          <label for="city"><strong>Area:</strong></label>
+          <input id="city" v-model.trim="order.city" required />
+        </p>
+
+        <p>
+          <label for="postalCode"><strong>Post Code:</strong></label>
+          <input
+            id="postalCode"
+            v-model.trim="order.postalCode"
+            required
+          />
+        </p>
+
+        <p>
+          <label for="emirate"><strong>County:</strong></label>
+
+          <select id="emirate" v-model="order.emirate" required>
+            <option disabled value="">Select a county</option>
+
+            <option
+              v-for="(name, key) in emirates"
+              :key="key"
+              :value="key"
+            >
+              {{ name }}
+            </option>
+          </select>
+        </p>
+
+        <p>
+          <input
+            type="checkbox"
+            id="gift"
+            v-model="order.gift"
+          />
+          <label for="gift">Is this a gift?</label>
+        </p>
+
+        <p>
+          <input
+            type="radio"
+            id="home"
+            value="home"
+            v-model="order.deliveryMethod"
+          />
+          <label for="home">Home Delivery</label>
+        </p>
+
+        <p>
+          <input
+            type="radio"
+            id="store"
+            value="store"
+            v-model="order.deliveryMethod"
+          />
+          <label for="store">Store Pickup</label>
+        </p>
+
+        <!-- Order Information -->
+        <div id="order_info">
+          <h2>Order Info</h2>
+          <p>First name: {{ order.firstName }}</p>
+          <p>Last name: {{ order.lastName }}</p>
+          <p>Address: {{ order.address }}</p>
+          <p>Area: {{ order.city }}</p>
+          <p>Post Code: {{ order.postalCode }}</p>
+          <p>County: {{ emirates[order.emirate] || "Not selected" }}</p>
+          <p>Is this a gift? {{ order.gift ? "Yes" : "No" }}</p>
+          <p>Delivery Method: {{ order.deliveryMethod }}</p>
+        </div>
+
+        <div id="order_button" style="margin-top: 1rem;">
+          <button type="submit" :disabled="cartItemCount === 0">
+            Place Order
+          </button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script>
+    new Vue({
+      el: "#app",
+
+      data: {
+        sitename: "After School Hobbies Store",
+        products: products,
+        cart: [],
+        showProduct: true,
+
+        emirates: {
+          LDN: "Greater London",
+          WMD: "West Midlands",
+          KEN: "Kent",
+          DEV: "Devon",
+          YKS: "Yorkshire",
+          SUR: "Surrey",
+          LAN: "Lancashire",
+          ESS: "Essex",
+          CON: "Cornwall",
+          GLS: "Gloucestershire"
         },
 
-        computed: {
-          cartItemCount() {
-            return this.cart.length;
-          },
+        order: {
+          firstName: "",
+          lastName: "",
+          address: "",
+          city: "",
+          postalCode: "",
+          emirate: "",
+          gift: false,
+          deliveryMethod: "home"
+        }
+      },
 
-          canAddToCart() {
-            return this.product.availableInventory > this.cartItemCount;
-          },
+      computed: {
+        // Sort a COPY of the array from lowest to highest price.
+        // This preserves the original products array.
+        sortedProducts() {
+          return this.products.slice().sort((a, b) => a.price - b.price);
         },
 
-        methods: {
-          addItem() {
-            this.cart.push(this.product.id);
-          },
-
-          showCheckout() {
-            this.showProduct = !this.showProduct;
-          },
+        cartItemCount() {
+          return this.cart.length;
         },
-      });
-    </script>
-  </body>
+
+        cartTotal() {
+          return this.cart.reduce((total, id) => {
+            const product = this.getProduct(id);
+            return total + (product.price || 0);
+          }, 0);
+        }
+      },
+
+      methods: {
+        cartCount(id) {
+          return this.cart.filter(itemId => itemId === id).length;
+        },
+
+        remainingInventory(product) {
+          return Math.max(
+            0,
+            product.availableInventory - this.cartCount(product.id)
+          );
+        },
+
+        canAddToCart(product) {
+          return this.remainingInventory(product) > 0;
+        },
+
+        addItem(product) {
+          if (this.canAddToCart(product)) {
+            this.cart.push(product.id);
+          }
+        },
+
+        removeItem(index) {
+          this.cart.splice(index, 1);
+        },
+
+        getProduct(id) {
+          return this.products.find(product => product.id === id) || {
+            title: "Unknown product",
+            price: 0
+          };
+        },
+
+        showCheckout() {
+          this.showProduct = !this.showProduct;
+        },
+
+        submitForm() {
+          if (this.cartItemCount === 0) {
+            alert("Your cart is empty.");
+            return;
+          }
+
+          alert("Order placed successfully!");
+        }
+      }
+    });
+  </script>
+</body>
 </html>
