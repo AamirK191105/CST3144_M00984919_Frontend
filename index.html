@@ -23,7 +23,11 @@
       <header>
         <h1 v-text="sitename"></h1>
 
-        <button type="button" @click="showCheckout">
+        <button
+          type="button"
+          @click="showCheckout"
+          :disabled="cartItemCount === 0"
+        >
           {{ cartItemCount }}
           <i class="fas fa-cart-plus"></i>
           Checkout
@@ -32,8 +36,60 @@
 
       <!-- Products Display View -->
       <main v-if="showProduct">
+        <div>
+          <strong>Sort:</strong>
+
+          <label>
+            <input type="radio" value="ascending" v-model="sortOrder" />
+            Ascending
+          </label>
+
+          <label>
+            <input type="radio" value="descending" v-model="sortOrder" />
+            Descending
+          </label>
+        </div>
+
+        <div>
+          <strong>Sort by:</strong>
+
+          <label>
+            <input type="radio" value="price" v-model="sortBy" />
+            Price
+          </label>
+
+          <label>
+            <input type="radio" value="location" v-model="sortBy" />
+            Location
+          </label>
+
+          <label>
+            <input type="radio" value="name" v-model="sortBy" />
+            Name
+          </label>
+
+          <label>
+            <input type="radio" value="spaces" v-model="sortBy" />
+            Number of spaces
+          </label>
+        </div>
+
         <div
-          v-for="product in sortedProducts"
+          v-for="product in sortBy === 'location'
+            ? (sortOrder === 'ascending'
+              ? locationSortedProducts
+              : descendingLocationSortedProducts)
+            : sortBy === 'name'
+              ? (sortOrder === 'ascending'
+                ? nameSortedProducts
+                : descendingNameSortedProducts)
+              : sortBy === 'spaces'
+                ? (sortOrder === 'ascending'
+                  ? spacesSortedProducts
+                  : descendingSpacesSortedProducts)
+                : sortOrder === 'ascending'
+                  ? sortedProducts
+                  : descendingSortedProducts"
           :key="product.id"
           style="margin-bottom: 2.5rem"
         >
@@ -121,7 +177,7 @@
 
           <p v-if="cartItemCount === 0">Your cart is empty.</p>
 
-          <template v-else>
+          <div v-else>
             <ul>
               <li v-for="(id, index) in cart" :key="index">
                 {{ getProduct(id).subject }} - £{{ (getProduct(id).price /
@@ -141,7 +197,7 @@
               <strong>Total:</strong>
               £{{ (cartTotal / 100).toFixed(2) }}
             </p>
-          </template>
+          </div>
         </section>
 
         <!-- Customer Details -->
@@ -239,6 +295,8 @@
           products: products,
           cart: [],
           showProduct: true,
+          sortOrder: "ascending",
+          sortBy: "price",
 
           counties: {
             LDN: "Greater London",
@@ -272,6 +330,50 @@
             return this.products.slice().sort((a, b) => a.price - b.price);
           },
 
+          descendingSortedProducts() {
+            return this.products.slice().sort((a, b) => b.price - a.price);
+          },
+
+          locationSortedProducts() {
+            return this.products.slice().sort((a, b) => {
+              if (a.location < b.location) return -1;
+              if (a.location > b.location) return 1;
+              return 0;
+            });
+          },
+
+          descendingLocationSortedProducts() {
+            return this.products.slice().sort((a, b) => {
+              if (a.location < b.location) return 1;
+              if (a.location > b.location) return -1;
+              return 0;
+            });
+          },
+
+          nameSortedProducts() {
+            return this.products.slice().sort((a, b) => {
+              if (a.subject < b.subject) return -1;
+              if (a.subject > b.subject) return 1;
+              return 0;
+            });
+          },
+
+          descendingNameSortedProducts() {
+            return this.products.slice().sort((a, b) => {
+              if (a.subject < b.subject) return 1;
+              if (a.subject > b.subject) return -1;
+              return 0;
+            });
+          },
+
+          spacesSortedProducts() {
+            return this.products.slice().sort((a, b) => a.space - b.space);
+          },
+
+          descendingSpacesSortedProducts() {
+            return this.products.slice().sort((a, b) => b.space - a.space);
+          },
+
           cartItemCount() {
             return this.cart.length;
           },
@@ -290,10 +392,13 @@
           },
 
           remainingInventory(product) {
-            return Math.max(
-              0,
-              product.space - this.cartCount(product.id),
-            );
+            const remaining = product.space - this.cartCount(product.id);
+
+            if (remaining < 0) {
+              return 0;
+            }
+
+            return remaining;
           },
 
           canAddToCart(product) {
