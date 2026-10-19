@@ -13,6 +13,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
+    <link rel="stylesheet" href="./styles.css" />
 
     <!-- Load product data BEFORE initializing Vue -->
     <script src="./products.js"></script>
@@ -35,8 +36,8 @@
       </header>
 
       <!-- Products Display View -->
-      <main v-if="showProduct">
-        <div>
+      <main v-if="showProduct" class="product-list">
+        <div class="sort-controls">
           <strong>Sort:</strong>
 
           <label>
@@ -50,7 +51,7 @@
           </label>
         </div>
 
-        <div>
+        <div class="sort-controls">
           <strong>Sort by:</strong>
 
           <label>
@@ -91,7 +92,7 @@
                   ? sortedProducts
                   : descendingSortedProducts"
           :key="product.id"
-          style="margin-bottom: 2.5rem"
+          class="product-card"
         >
           <!-- Product Icon -->
           <figure>
@@ -168,8 +169,12 @@
       </main>
 
       <!-- Checkout View -->
-      <main v-else>
+      <main v-else class="checkout-page">
         <h2>Checkout</h2>
+        <button type="button" @click="showProduct = true">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+          Back to lessons
+        </button>
 
         <!-- Shopping Cart -->
         <section aria-labelledby="cart-heading" style="margin-top: 1.5rem">
@@ -210,6 +215,19 @@
           <p>
             <label for="lastName"><strong>Last Name:</strong></label>
             <input id="lastName" v-model.trim="order.lastName" required />
+          </p>
+
+          <p>
+            <label for="phone"><strong>Phone:</strong></label>
+            <input
+              id="phone"
+              type="tel"
+              v-model.trim="order.phone"
+              inputmode="numeric"
+              pattern="[0-9]+"
+              placeholder="e.g. 055 1234567"
+              required
+            />
           </p>
 
           <p>
@@ -269,6 +287,7 @@
             <h2>Order Info</h2>
             <p>First name: {{ order.firstName }}</p>
             <p>Last name: {{ order.lastName }}</p>
+            <p>Phone: {{ order.phone }}</p>
             <p>Address: {{ order.address }}</p>
             <p>Area: {{ order.city }}</p>
             <p>Post Code: {{ order.postalCode }}</p>
@@ -276,6 +295,10 @@
             <p>Is this a gift? {{ order.gift ? "Yes" : "No" }}</p>
             <p>Delivery Method: {{ order.deliveryMethod }}</p>
           </div>
+
+          <p v-if="validationError" class="validation-error" role="alert">
+            {{ validationError }}
+          </p>
 
           <div id="order_button" style="margin-top: 1rem">
             <button type="submit" :disabled="cartItemCount === 0">
@@ -314,6 +337,7 @@
           order: {
             firstName: "",
             lastName: "",
+            phone: "",
             address: "",
             city: "",
             postalCode: "",
@@ -321,6 +345,7 @@
             gift: false,
             deliveryMethod: "home",
           },
+          validationError: "",
         },
 
         computed: {
@@ -434,6 +459,27 @@
               return;
             }
 
+            const namePattern = /^[A-Za-z][A-Za-z' -]*$/;
+            const phonePattern = /^[0-9]+$/;
+
+            if (!namePattern.test(this.order.firstName)) {
+              this.validationError =
+                "First name must contain letters only.";
+              return;
+            }
+
+            if (!namePattern.test(this.order.lastName)) {
+              this.validationError =
+                "Last name must contain letters only.";
+              return;
+            }
+
+            if (!phonePattern.test(this.order.phone)) {
+              this.validationError = "Phone must contain numbers only.";
+              return;
+            }
+
+            this.validationError = "";
             alert("Order placed successfully!");
           },
         },
